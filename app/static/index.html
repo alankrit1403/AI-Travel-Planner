@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Travel Planner | Express Analytics</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-icon"><i class="fa-solid fa-plane-departure"></i></div>
+                <div class="brand-text">
+                    <h1>AI Travel Planner</h1>
+                    <span class="subtitle">LangGraph Multi-Agent System with HITL Approval</span>
+                </div>
+            </div>
+            <div class="nav-status">
+                <span class="status-badge" id="systemHealthBadge"><i class="fa-solid fa-circle-check"></i> System Ready</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Left Panel: Trip Request Form -->
+            <section class="card form-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-compass"></i> Create New Trip Request</h2>
+                    <p>Enter preferences to initiate agent research & itinerary generation</p>
+                </div>
+                <form id="travelForm" class="travel-form">
+                    <div class="form-group">
+                        <label for="destination"><i class="fa-solid fa-location-dot"></i> Destination</label>
+                        <input type="text" id="destination" placeholder="e.g. Tokyo, Japan" value="Tokyo, Japan" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startDate"><i class="fa-solid fa-calendar"></i> Start Date</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate"><i class="fa-solid fa-calendar-check"></i> End Date</label>
+                            <input type="date" id="endDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="budgetRange"><i class="fa-solid fa-wallet"></i> Budget Tier</label>
+                            <select id="budgetRange">
+                                <option value="Budget">Budget ($ - Backpacking/Hostels)</option>
+                                <option value="Moderate" selected>Moderate ($$ - 4★ Hotels & Bistros)</option>
+                                <option value="Luxury">Luxury ($$$ - 5★ Resorts & Fine Dining)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="numTravelers"><i class="fa-solid fa-users"></i> Travelers</label>
+                            <input type="number" id="numTravelers" min="1" max="10" value="2" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interests"><i class="fa-solid fa-heart"></i> Interests (comma-separated)</label>
+                        <input type="text" id="interests" placeholder="Food, Culture, Shopping, Anime, Nature" value="Food, Culture, Shopping, Technology">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialNotes"><i class="fa-solid fa-note-sticky"></i> Special Notes / Constraints</label>
+                        <textarea id="specialNotes" rows="2" placeholder="Vegetarian food preferences, central hotel preference, etc."></textarea>
+                    </div>
+
+                    <button type="submit" id="btnSubmitPlan" class="btn btn-primary btn-block">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Travel Plan
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Panel: Agent Workflow, Draft Itinerary & HITL Review -->
+            <section class="card display-card">
+                <!-- Workflow Timeline -->
+                <div class="workflow-stepper">
+                    <div class="step step-active" id="step1">
+                        <div class="step-circle"><i class="fa-solid fa-magnifying-glass"></i></div>
+                        <span>1. Research Agent</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step2">
+                        <div class="step-circle"><i class="fa-solid fa-route"></i></div>
+                        <span>2. Itinerary Planner</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step3">
+                        <div class="step-circle"><i class="fa-solid fa-user-check"></i></div>
+                        <span>3. HITL Approval</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step4">
+                        <div class="step-circle"><i class="fa-solid fa-flag-checkered"></i></div>
+                        <span>4. Finalized Plan</span>
+                    </div>
+                </div>
+
+                <!-- Live Status Banner -->
+                <div id="statusBanner" class="status-banner info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="statusMessage">Fill in your travel preferences on the left to start the multi-agent workflow.</span>
+                </div>
+
+                <!-- Content Area -->
+                <div id="contentArea" class="content-area">
+                    <!-- Empty Initial State -->
+                    <div id="emptyState" class="empty-state">
+                        <div class="empty-icon"><i class="fa-solid fa-earth-americas"></i></div>
+                        <h3>Your Trip Plan Will Appear Here</h3>
+                        <p>Our agents will conduct real-time destination research, calculate budgets, and present a draft itinerary for your review.</p>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="loadingState" class="loading-state hidden">
+                        <div class="spinner"></div>
+                        <h3 id="loadingText">Research Agent analyzing destination...</h3>
+                        <p>Executing Web Search API & Weather Forecasting Tools...</p>
+                    </div>
+
+                    <!-- Draft Itinerary & HITL Review Controls -->
+                    <div id="draftState" class="draft-state hidden">
+                        <div class="plan-header">
+                            <div>
+                                <h2 id="draftTitle">5-Day Trip to Tokyo, Japan</h2>
+                                <p class="plan-meta" id="draftMeta"><i class="fa-solid fa-calendar"></i> Oct 1 - Oct 5 | <i class="fa-solid fa-user"></i> 2 Travelers | <i class="fa-solid fa-wallet"></i> Moderate</p>
+                            </div>
+                            <div class="budget-badge" id="draftBudget">Est. Total: $1,450 USD</div>
+                        </div>
+
+                        <!-- Hotel & Logistics Cards -->
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <h4><i class="fa-solid fa-hotel"></i> Recommended Stay</h4>
+                                <p id="draftHotel">4-Star Hotel in Central Shibuya / Shinjuku</p>
+                            </div>
+                            <div class="info-card">
+                                <h4><i class="fa-solid fa-bus"></i> Transportation</h4>
+                                <p id="draftTransit">Metro 7-Day Tourist Pass & Express Rail</p>
+                            </div>
+                        </div>
+
+                        <!-- Weather & Research Bar -->
+                        <div class="research-box" id="researchSummaryBox">
+                            <h4><i class="fa-solid fa-cloud-sun"></i> Weather Intelligence</h4>
+                            <p id="weatherSummaryText">Pleasant autumn weather with temperatures averaging 14°C - 22°C.</p>
+                        </div>
+
+                        <!-- Day-by-Day Schedule -->
+                        <h3 class="section-title"><i class="fa-solid fa-calendar-days"></i> Day-by-Day Draft Itinerary</h3>
+                        <div id="scheduleAccordion" class="schedule-list"></div>
+
+                        <!-- HITL Action Panel (Approve / Reject / Modify) -->
+                        <div class="hitl-panel" id="hitlPanel">
+                            <div class="hitl-header">
+                                <h3><i class="fa-solid fa-shield-halved"></i> Human-In-The-Loop Approval Required</h3>
+                                <p>Review the draft itinerary above. Select an action to proceed with the LangGraph state machine:</p>
+                            </div>
+
+                            <div class="hitl-actions">
+                                <button class="btn btn-success" id="btnApprove"><i class="fa-solid fa-check"></i> Approve As-Is</button>
+                                <button class="btn btn-warning" id="btnModifyModal"><i class="fa-solid fa-pen-to-square"></i> Request Modifications</button>
+                                <button class="btn btn-danger" id="btnRejectModal"><i class="fa-solid fa-xmark"></i> Reject with Feedback</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Finalized Plan View -->
+                    <div id="finalState" class="final-state hidden">
+                        <div class="final-header">
+                            <div>
+                                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Final Approved Plan</span>
+                                <h2 id="finalTitle">Finalized Itinerary: Tokyo, Japan</h2>
+                            </div>
+                            <button class="btn btn-secondary" id="btnDownloadMarkdown"><i class="fa-solid fa-download"></i> Export Markdown</button>
+                        </div>
+                        <div id="finalMarkdownContainer" class="markdown-body"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Review Modal for Reject/Modify -->
+    <div class="modal-overlay hidden" id="reviewModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitle">Request Plan Modifications</h3>
+                <button class="btn-close" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reviewComments" id="lblComments">Feedback / Special Instructions</label>
+                    <textarea id="reviewComments" rows="3" placeholder="Specify what you'd like the planner agent to adjust..."></textarea>
+                </div>
+                <div class="form-group" id="modFieldsGroup">
+                    <label><i class="fa-solid fa-sliders"></i> Specific Field Adjustments (Optional)</label>
+                    <div class="form-row">
+                        <input type="text" id="modHotel" placeholder="New Hotel Preference (e.g. 5-Star Luxury)">
+                        <input type="text" id="modBudget" placeholder="New Budget Tier (e.g. Luxury)">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelModal">Cancel</button>
+                <button class="btn btn-primary" id="btnSubmitReview"><i class="fa-solid fa-paper-plane"></i> Submit to Agent</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
