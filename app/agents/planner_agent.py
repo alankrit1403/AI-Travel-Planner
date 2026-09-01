@@ -25,12 +25,12 @@ class PlannerAgent:
         num_travelers = request.get("num_travelers", 1)
         special_notes = request.get("special_notes", "")
 
-        # Apply modifications if present in latest review
-        if latest_review and latest_review.get("modifications"):
-            mods = latest_review.get("modifications", {})
-            if "budget_range" in mods:
+        # Safe extraction of review modifications
+        if latest_review and isinstance(latest_review, dict):
+            mods = latest_review.get("modifications") or {}
+            if "budget_range" in mods and mods["budget_range"]:
                 budget_range = mods["budget_range"]
-            if "hotel" in mods:
+            if "hotel" in mods and mods["hotel"]:
                 special_notes = f"{special_notes} | Preferred hotel: {mods['hotel']}"
 
         # 1. Execute Budget & Distance Calculator Tool
@@ -93,7 +93,7 @@ class PlannerAgent:
             start_dt = datetime.now()
 
         dining_list = dining_events.get("recommended_dining", [])
-        mods = latest_review.get("modifications", {}) if latest_review else {}
+        mods = (latest_review.get("modifications") if (latest_review and isinstance(latest_review, dict)) else None) or {}
 
         for i in range(num_days):
             current_dt = start_dt + timedelta(days=i)
@@ -158,6 +158,8 @@ class PlannerAgent:
         return base_items
 
     def _enhance_with_llm(self, destination: str, request: dict, latest_review: Optional[dict]) -> str:
+        comments = latest_review.get("comments") if (latest_review and isinstance(latest_review, dict)) else None
+        
         if settings.OPENAI_API_KEY or settings.GROQ_API_KEY:
             try:
                 from langchain_openai import ChatOpenAI
@@ -167,7 +169,7 @@ class PlannerAgent:
                     api_key=settings.OPENAI_API_KEY or settings.GROQ_API_KEY,
                     temperature=0.7
                 )
-                review_context = f"User Review Comments: {latest_review.get('comments')}" if latest_review else "Initial Draft Creation"
+                review_context = f"User Review Comments: {comments}" if comments else "Initial Draft Creation"
                 prompt = (
                     f"You are an expert Travel Planner AI. Generate a friendly 2-sentence note to the user about their itinerary for {destination}.\n"
                     f"Context: {review_context}"
@@ -177,8 +179,8 @@ class PlannerAgent:
             except Exception as e:
                 print(f"[PlannerAgent] LLM notice: {e}")
 
-        if latest_review and latest_review.get("comments"):
-            return f"Itinerary updated based on user feedback: '{latest_review.get('comments')}'."
+        if comments:
+            return f"Itinerary updated based on user feedback: '{comments}'."
         return "Itinerary crafted with optimal scheduling, local dining highlights, and travel time buffers."
 
 planner_agent = PlannerAgent()

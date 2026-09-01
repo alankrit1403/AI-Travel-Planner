@@ -47,10 +47,10 @@ def planner_node(state: TravelPlanState) -> Dict[str, Any]:
     """
     Executes Itinerary Planner Agent to construct day-by-day trip plan.
     """
-    req = state.get("request", {})
-    res_data = state.get("research_data", {})
-    feedback_hist = state.get("feedback_history", [])
-    latest_rev = state.get("latest_review")
+    req = state.get("request") or {}
+    res_data = state.get("research_data") or {}
+    feedback_hist = state.get("feedback_history") or []
+    latest_rev = state.get("latest_review") or {}
     now_str = datetime.now().isoformat()
 
     draft_plan = planner_agent.create_itinerary(
@@ -83,9 +83,9 @@ def process_feedback_node(state: TravelPlanState) -> Dict[str, Any]:
     """
     Processes human review feedback submitted via API.
     """
-    latest = state.get("latest_review", {})
+    latest = state.get("latest_review") or {}
     action = latest.get("action", "approve")
-    history = list(state.get("feedback_history", []))
+    history = list(state.get("feedback_history") or [])
     history.append({
         "timestamp": datetime.now().isoformat(),
         "action": action,
@@ -93,7 +93,7 @@ def process_feedback_node(state: TravelPlanState) -> Dict[str, Any]:
         "modifications": latest.get("modifications")
     })
 
-    rev_count = state.get("revision_count", 0) + 1
+    rev_count = (state.get("revision_count") or 0) + 1
     now_str = datetime.now().isoformat()
 
     if action == "approve":

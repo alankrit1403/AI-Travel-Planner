@@ -152,7 +152,8 @@ def review_travel_plan(
         for event in travel_planner_app.stream(None, thread_config):
             pass
     except Exception as e:
-        print(f"[POST /plan/review] Resume stream notice: {e}")
+        import traceback
+        traceback.print_exc()
 
     updated_snapshot = travel_planner_app.get_state(thread_config)
     updated_state = updated_snapshot.values if updated_snapshot else {}
