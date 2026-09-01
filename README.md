@@ -4,6 +4,45 @@ A state-of-the-art multi-agent travel planning system built with **Python**, **L
 
 ---
 
+## 🌟 Architecture Overview
+
+```mermaid
+graph TD
+    User([User / Web Client]) -->|1. POST /plan| API[FastAPI Web Server]
+    API -->|Initialize Session State| LG[LangGraph Orchestrator]
+    
+    subgraph LangGraph StateGraph Workflow
+        START((Start)) --> Validate[Validate Request Node]
+        Validate --> Research[Agent 1: Research Agent]
+        
+        subgraph Research Tools
+            Research <--> SearchTool[Tool 1: Web Search API - Serper / Exa / Tavily]
+            Research <--> WeatherTool[Tool 2: Weather & Seasonal Forecast Tool]
+        end
+        
+        Research --> Planner[Agent 2: Itinerary Planner Agent]
+        
+        subgraph Planner Tools
+            Planner <--> CalcTool[Tool 1: Budget & Distance/Transit Calculator]
+            Planner <--> DiningTool[Tool 2: Local Dining & Events Recommender]
+        end
+        
+        Planner --> HITL{HITL Approval Interrupt}
+        HITL -->|State Persisted in Checkpointer| Paused[Paused State - AWAITING_APPROVAL]
+        
+        Paused -->|"2. POST /plan/{id}/review"| ReviewNode[Process HITL Feedback]
+        
+        ReviewNode -->|Action: Approve| Finalize[Finalize Plan Node]
+        ReviewNode -->|Action: Reject / Modify| Planner
+        
+        Finalize --> END((End - FINALIZED State))
+    end
+    
+    Paused -->|"GET /plan/{id}"| API
+    Finalize -->|"3. GET /plan/{id}/final"| API
+```
+
+---
 ## 🎯 Key Features & Agent System
 
 1. **LangGraph Orchestrator:**
